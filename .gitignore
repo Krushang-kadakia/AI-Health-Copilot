@@ -1,0 +1,29 @@
+# Project-wide Git ignore
+
+# Environments
+**/venv/
+**/.env
+**/.env.local
+
+# Build outputs
+**/dist/
+**/build/
+**.exe
+
+# Dependencies
+**/node_modules/
+
+# Python Cache
+**/__pycache__/
+**.pyc
+
+# Local Database (Comment out if you want to share the DB file)
+health_copilot.db
+
+# System files
+.DS_Store
+Thumbs.db
+
+# User specific uploads (optional)
+backend/uploads/*
+!backend/uploads/.gitkeep

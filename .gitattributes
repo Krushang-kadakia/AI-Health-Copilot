@@ -1,0 +1,15 @@
+# Handle line endings automatically for files detected as text 
+# and leave binary files untouched
+* text=auto
+
+# Explicitly set line endings to LF for specific file types
+# if you want to ensure they stay LF even on Windows (optional)
+*.sh text eol=lf
+*.py text
+*.tsx text
+*.ts text
+*.js text
+*.css text
+*.html text
+*.json text
+*.md text

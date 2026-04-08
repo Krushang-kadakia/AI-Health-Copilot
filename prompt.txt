@@ -1,0 +1,90 @@
+For the existing project you need to help me enhance it according to my instructions given below
+
+Design a modern, production-level UI for an AI-powered healthcare application built on a decoupled client-server architecture.
+
+The system includes features such as symptom checking, image-based disease detection, report analysis, health risk prediction, Ayurvedic recommendations, voice interaction, and nearby hospital discovery.
+
+The UI should NOT feel like a simple tool or Streamlit app. It should feel like a scalable healthcare platform or AI product.
+
+Key requirements:
+
+1. Overall Experience:
+
+* Design it as a full platform, not a single-page tool
+* Clean, modern, minimal, and professional healthcare aesthetic
+* Use soft colors (blues/greens), cards, and rounded components
+* Responsive design (desktop + mobile)
+
+2. Layout Structure:
+
+* Top navigation bar (primary navigation)
+* Optional collapsible sidebar (secondary navigation)
+* Main landing page should be a dashboard (NOT a sidebar-first layout)
+
+3. Dashboard (Home Page):
+
+* Welcome section with user greeting
+* Quick action cards (Check Symptoms, Upload Report, Scan Image, etc.)
+* Recent activity/history
+* Health insights preview (if available)
+
+4. Core Interaction Model:
+
+* The AI chatbot should be the central experience (like ChatGPT)
+* Users should be able to:
+
+  * Type symptoms
+  * Use voice input (mic button)
+  * Upload images and reports directly in chat
+* Chat should return predictions, suggestions, and next steps
+
+5. Feature Integration (Important):
+   Avoid creating isolated pages for each feature. Instead:
+
+* Symptom checker → inside chat
+* Voice assistant → inside chat
+* Image detection → upload in chat
+* Ayurvedic suggestions → part of responses
+* Report analysis → separate upload page + chat integration
+* Risk prediction → structured input form + results dashboard
+* Nearby hospitals → map view triggered when needed
+
+6. Navigation Tabs:
+
+* Dashboard
+* AI Assistant (Chat)
+* Reports
+* Insights / Risk Analysis
+* Nearby Help
+
+7. UI Components:
+
+* Card-based layout
+* Chat interface (bubbles, input bar, attachments)
+* File upload components
+* Charts/graphs for risk prediction
+* Map integration for nearby hospitals
+
+8. UX Flow:
+
+* Users land on dashboard
+* Click action or start chat
+* Interact conversationally
+* System dynamically suggests next steps (e.g., hospitals if severe)
+
+9. What to Avoid:
+
+* Do NOT use a basic sidebar-only UI
+* Do NOT design like a form-heavy application
+* Do NOT separate features too rigidly
+* Do NOT replicate Streamlit-style layouts
+
+10. Suggested Frontend Stack:
+
+* React
+* Tailwind CSS (or similar utility-first styling)
+* Modern component libraries (e.g., shadcn/ui)
+* Optional animations for smooth UX
+
+Goal:
+Create a UI that feels like an “AI Health Copilot” rather than a basic academic project.

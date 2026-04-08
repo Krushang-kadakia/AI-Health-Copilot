@@ -1,0 +1,11 @@
+streamlit
+ollama
+pyttsx3
+SpeechRecognition
+geocoder
+requests
+pymupdf
+Pillow
+fastapi 
+uvicorn 
+python-multipart
