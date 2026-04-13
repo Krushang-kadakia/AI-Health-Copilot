@@ -117,6 +117,26 @@ def save_message_task(conversation_id: int, role: str, content: str, file_path: 
     finally:
         db.close()
 
+def update_chat_title_task(conversation_id: int, full_response: str):
+    """Summarizes the AI response to generate a better chat title."""
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        title_prompt = (
+            f"Generate a short, 3-5 word medical-themed title based on this AI analysis: {full_response[:500]}... "
+            "Output ONLY the title text, no quotes or period."
+        )
+        new_title = get_simple_completion(title_prompt)
+        if new_title and "Error" not in new_title:
+            conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+            if conv:
+                conv.title = new_title
+                db.commit()
+    except Exception as e:
+        print(f"Error updating chat title: {e}")
+    finally:
+        db.close()
+
 # --- AUTH ENDPOINTS ---
 
 @app.post("/api/register")
@@ -177,9 +197,34 @@ async def delete_conversation(id: int, user: User = Depends(get_current_user), d
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
+    # Delete associated files from storage
+    messages = db.query(Message).filter(Message.conversation_id == id).all()
+    for msg in messages:
+        if msg.file_path:
+            # The file_path in DB is relative, e.g., /api/uploads/filename.ext
+            # We need the absolute path on disk
+            filename = os.path.basename(msg.file_path)
+            abs_path = os.path.join(UPLOAD_DIR, filename)
+            if os.path.exists(abs_path):
+                try:
+                    os.remove(abs_path)
+                    print(f"Deleted file: {abs_path}")
+                except Exception as e:
+                    print(f"Failed to delete file {abs_path}: {e}")
+    
     db.delete(conv)
     db.commit()
     return {"detail": "Conversation deleted successfully"}
+
+@app.patch("/api/conversations/{id}")
+async def rename_conversation(id: int, title: str = Form(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    conv = db.query(Conversation).filter(Conversation.id == id, Conversation.user_id == user.id).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    conv.title = title
+    db.commit()
+    return {"id": conv.id, "title": conv.title}
 
 # --- AI ENDPOINTS (UPDATED) ---
 
@@ -194,12 +239,7 @@ async def chat_endpoint(
     if user:
         # Handle conversation persistence for logged-in users
         if not conversation_id:
-            title_prompt = f"Generate a short, 3-5 word title for a medical conversation based on this user message: {message}. Output ONLY the title text, no quotes or period."
-            smart_title = get_simple_completion(title_prompt)
-            if "Error" in smart_title or not smart_title:
-                smart_title = message[:30] + "..."
-                
-            new_conv = Conversation(user_id=user.id, title=smart_title)
+            new_conv = Conversation(user_id=user.id, title="New Consultation...")
             db.add(new_conv)
             db.commit()
             db.refresh(new_conv)
@@ -225,6 +265,7 @@ async def chat_endpoint(
                 yield chunk
             
             background_tasks.add_task(save_message_task, conversation_id, "assistant", full_response)
+            background_tasks.add_task(update_chat_title_task, conversation_id, full_response)
 
         return StreamingResponse(event_generator(), media_type="text/plain")
     else:
@@ -265,13 +306,7 @@ async def analyze_image_endpoint(
     if user:
         # Handle conversation persistence
         if not conversation_id:
-            # Generate smart title
-            title_prompt = f"Generate a short, 3-5 word title for a medical conversation based on this image query: {message or 'Image analysis'}. Output ONLY the title text, no quotes or period."
-            smart_title = get_simple_completion(title_prompt)
-            if "Error" in smart_title or not smart_title:
-                 smart_title = f"Image Analysis: {file.filename[:20]}"
-                 
-            new_conv = Conversation(user_id=user.id, title=smart_title)
+            new_conv = Conversation(user_id=user.id, title="Image Analysis...")
             db.add(new_conv)
             db.commit()
             db.refresh(new_conv)
@@ -302,6 +337,7 @@ async def analyze_image_endpoint(
                 yield chunk
                 
             background_tasks.add_task(save_message_task, conversation_id, "assistant", full_response)
+            background_tasks.add_task(update_chat_title_task, conversation_id, full_response)
 
         return StreamingResponse(event_generator(), media_type="text/plain")
     else:
@@ -354,12 +390,7 @@ async def analyze_report_endpoint(
         if user:
             # Handle conversation persistence
             if not conversation_id:
-                title_prompt = f"Generate a short, 3-5 word title for a medical conversation based on this report: {file.filename}. Output ONLY the title text, no quotes or period."
-                smart_title = get_simple_completion(title_prompt)
-                if "Error" in smart_title or not smart_title:
-                    smart_title = f"Report Analysis: {file.filename[:20]}"
-                    
-                new_conv = Conversation(user_id=user.id, title=smart_title)
+                new_conv = Conversation(user_id=user.id, title="Report Analysis...")
                 db.add(new_conv)
                 db.commit()
                 db.refresh(new_conv)
@@ -384,6 +415,7 @@ async def analyze_report_endpoint(
                     full_response += chunk
                     yield chunk
                 background_tasks.add_task(save_message_task, conversation_id, "assistant", full_response)
+                background_tasks.add_task(update_chat_title_task, conversation_id, full_response)
             return StreamingResponse(event_generator(), media_type="text/plain")
         else:
             # Guest Mode: No DB record

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Send, ImageIcon, FileText, Mic, Bot, User, X, Loader2, Volume2, StopCircle, PanelLeftClose, PanelLeft, Plus, MessageSquare, Trash2, ChevronRight, Activity, Clock } from "lucide-react";
+import { Send, ImageIcon, FileText, Mic, Bot, User, X, Loader2, Volume2, StopCircle, PanelLeftClose, PanelLeft, Plus, MessageSquare, Trash2, ChevronRight, Activity, Clock, Pencil, Check } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from "../lib/AuthContext";
@@ -42,6 +42,8 @@ export default function ChatCopilot() {
   const [historyList, setHistoryList] = useState<any[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   
   const bottomRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -135,6 +137,38 @@ export default function ChatCopilot() {
     } catch (error) {
       console.error("Delete error:", error);
     }
+  };
+  
+  const handleRename = async (e: React.MouseEvent | React.KeyboardEvent, id: string) => {
+    e.stopPropagation();
+    if (!editTitle.trim()) {
+      setEditingId(null);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("title", editTitle);
+      
+      const res = await fetch(`${API_BASE_URL}/api/conversations/${id}`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData
+      });
+
+      if (res.ok) {
+        setHistoryList(prev => prev.map(c => c.id.toString() === id ? { ...c, title: editTitle } : c));
+        setEditingId(null);
+      }
+    } catch (error) {
+      console.error("Rename error:", error);
+    }
+  };
+
+  const startEditing = (e: React.MouseEvent, id: string, title: string) => {
+    e.stopPropagation();
+    setEditingId(id);
+    setEditTitle(title);
   };
 
   useEffect(() => {
@@ -317,22 +351,55 @@ export default function ChatCopilot() {
                   : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-slate-100'
               }`}
              >
-               <div className="flex items-center justify-between z-10">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center justify-between z-10">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <MessageSquare size={16} className={item.id.toString() === activeConversationId ? 'text-white' : 'text-blue-500'} />
-                    <span className={`text-sm font-bold truncate tracking-tight ${item.id.toString() === activeConversationId ? 'text-white' : 'text-slate-700'}`}>
-                      {item.title}
-                    </span>
+                    {editingId === item.id.toString() ? (
+                      <input
+                        autoFocus
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.key === "Enter" && handleRename(e, item.id.toString())}
+                        onBlur={() => setEditingId(null)}
+                        className="bg-white/10 text-white text-sm font-bold border-none outline-none focus:ring-1 focus:ring-white/30 rounded px-1 w-full"
+                      />
+                    ) : (
+                      <span className={`text-sm font-bold truncate tracking-tight ${item.id.toString() === activeConversationId ? 'text-white' : 'text-slate-700'}`}>
+                        {item.title}
+                      </span>
+                    )}
                   </div>
-                  <button 
-                    onClick={(e) => deleteConversation(e, item.id)}
-                    className={`p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 ${
-                      item.id.toString() === activeConversationId ? 'hover:bg-white/20 text-white' : 'hover:bg-rose-50 text-slate-300 hover:text-rose-600'
-                    }`}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-               </div>
+                  <div className="flex items-center gap-1">
+                    {editingId === item.id.toString() ? (
+                      <button 
+                        onClick={(e) => handleRename(e, item.id.toString())}
+                        className="p-1.5 rounded-lg transition-all text-white hover:bg-white/20"
+                      >
+                        <Check size={14} />
+                      </button>
+                    ) : (
+                      <>
+                        <button 
+                          onClick={(e) => startEditing(e, item.id.toString(), item.title)}
+                          className={`p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 ${
+                            item.id.toString() === activeConversationId ? 'hover:bg-white/20 text-white' : 'hover:bg-blue-50 text-slate-300 hover:text-blue-600'
+                          }`}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button 
+                          onClick={(e) => deleteConversation(e, item.id)}
+                          className={`p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 ${
+                            item.id.toString() === activeConversationId ? 'hover:bg-white/20 text-white' : 'hover:bg-rose-50 text-slate-300 hover:text-rose-600'
+                          }`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
                <div className={`text-[10px] uppercase tracking-wider font-semibold opacity-60 ml-7 flex items-center gap-1 ${item.id.toString() === activeConversationId ? 'text-blue-100' : 'text-slate-400'}`}>
                   <Activity size={10} /> session active
                </div>
